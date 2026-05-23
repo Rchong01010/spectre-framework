@@ -50,8 +50,8 @@ Not every agent needs API credits. Design agents to use free tools first:
 | `semgrep` | Free | Static analysis |
 | `npm audit` | Free | Dependency scanning |
 | `git log` | Free | History scanning |
-| Firecrawl (free tier) | ~150 credits/day | Web search + scrape |
-| LLM API | ~$0.01-0.10/call | Content analysis, drafting |
+| Web scraping API | Per-run credit budgets | Web search + scrape |
+| LLM API | Per-call pricing | Content analysis, drafting |
 
 ### 4. Track credit usage in output
 
@@ -63,22 +63,18 @@ Credits used: 12/20 this run
 
 This makes budget management visible without checking billing dashboards.
 
-## Monthly Cost Model (Real Numbers)
+## Monthly Cost Model (Pattern)
 
-| Agent | Runs/Month | Credits/Run | API Cost | Total |
-|-------|------------|-------------|----------|-------|
-| Oddjob (Scanner) | 180 (6x/day) | 8 Firecrawl | ~$0 (free tier) | $0 |
-| Dr. No (Ops) | 30 (daily) | 0 | $0 | $0 |
-| Elektra (Inbound) | 90 (3x/day) | 5 Firecrawl | ~$0 | $0 |
-| Goldfinger (Prospector) | 8 (2x/week) | 20 Firecrawl | ~$0 | $0 |
-| Trevelyan (Security) | 4 (weekly) | 0 | $0 | $0 |
-| Janus (Scout) | 4 (weekly) | 10 Firecrawl | ~$0 | $0 |
-| Scaramanga (Content) | ~10 (on-demand) | 0 | ~$2 LLM | $2 |
-| Moneypenny (Analyst) | ~5 (on-demand) | 0 | ~$3 LLM | $3 |
-| **LLM executor overhead** | — | — | ~$15 | $15 |
-| **Total** | | | | **~$20/mo** |
+To estimate your fleet cost, calculate per-agent:
 
-The entire 8-agent fleet runs for about $20/month in API costs. Infrastructure (Hetzner VPS) adds ~$7/month. Total: **~$27/month** for a fully autonomous agent fleet.
+| Variable | Formula |
+|----------|---------|
+| Runs/month | Schedule frequency x 30 |
+| Credits/run | Set in skill spec |
+| Max monthly credits | Runs x credits/run |
+| API cost | Credits x provider rate |
+
+**Key insight:** Agents that don't require LLM inference (health checks, security scans) cost $0 in API fees. Design as many agents as possible to use free tooling (`curl`, `ssh`, `semgrep`, etc.), and reserve LLM calls for tasks that genuinely require language understanding. The entire fleet can run on a minimal VPS plus free-tier services.
 
 ## Overspend Prevention
 

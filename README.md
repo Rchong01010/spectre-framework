@@ -4,7 +4,7 @@
 
 SPECTRE is the reference architecture behind a real production system that runs a multi-brand business with AI agents handling distribution, security, ops monitoring, inbound detection, content scanning, and prospecting — all coordinated through Slack with human-in-the-loop approval gates.
 
-This isn't a tutorial or a proof-of-concept. This system has been running in production since April 2026, processing thousands of automated decisions daily across 7 repos, 5 Vercel deployments, 2 Supabase instances, and a Hetzner VPS.
+This isn't a tutorial or a proof-of-concept. This system has been running in production since April 2026, processing thousands of automated decisions daily across multiple repos, multiple deployments, database instances, and a VPS (any provider).
 
 ## What's in this repo
 
@@ -50,7 +50,7 @@ spectre-framework/
                                    │
                          ┌─────────▼─────────┐
                          │   Slack Channel    │
-                         │  #hermes-updates   │
+                         │      #alerts       │
                          └─────────┬─────────┘
                                    │
               ┌────────────────────┼────────────────────┐
@@ -58,13 +58,13 @@ spectre-framework/
      ┌────────▼───────┐  ┌────────▼───────┐  ┌────────▼───────┐
      │    Oddjob       │  │   Dr. No       │  │   Elektra      │
      │  (Scanner)      │  │  (Ops)         │  │  (Inbound)     │
-     │  6x/day         │  │  Daily 6am     │  │  3x/day        │
+     │  Configurable   │  │  Configurable  │  │  Configurable  │
      └────────┬───────┘  └────────┬───────┘  └────────┬───────┘
               │                    │                    │
      ┌────────▼───────┐  ┌────────▼───────┐  ┌────────▼───────┐
      │  Goldfinger     │  │  Trevelyan     │  │   Janus        │
      │  (Prospector)   │  │  (Security)    │  │  (Scout)       │
-     │  2x/week        │  │  Weekly Sun    │  │  Weekly Mon    │
+     │  Configurable   │  │  Configurable  │  │  Configurable  │
      └────────┬───────┘  └────────┬───────┘  └────────┬───────┘
               │                    │                    │
      ┌────────▼───────┐  ┌────────▼───────┐
@@ -107,34 +107,32 @@ Any agent that scans external content (X posts, Reddit threads, email replies, w
 
 | Component | What | Where |
 |-----------|------|-------|
-| Agent executor | Runs LLM-dependent agent skills | Hetzner VPS (CX23, ~$7/mo) |
+| Agent executor | Runs LLM-dependent agent skills | VPS (any provider) |
 | Deterministic crons | Health checks, email pipeline, enrichment | Local machine (crontab) |
-| Approval gate | HMAC-signed approve/reject links | Vercel serverless |
-| Database | Prospect state, outreach logs, analytics | Supabase (2 instances, RLS enforced) |
+| Approval gate | HMAC-signed approve/reject links | Serverless platform |
+| Database | Prospect state, outreach logs, analytics | Database instances (RLS enforced) |
 | Notification hub | All agent output, human review | Slack workspace |
-| Web properties | 5 production sites | Vercel |
+| Web properties | Production sites | Serverless platform |
 | Activity bridge | Captures Slack → local JSONL for planning sessions | Local daemon |
-
-**Monthly infrastructure cost: ~$35** (Hetzner $7 + Supabase free tier + Vercel free tier + Slack free + LLM API ~$20)
 
 ## The GTM Automation Stack
 
-Beyond the agent fleet, the system includes a 60+ script Python automation layer handling:
+Beyond the agent fleet, the system includes a Python automation script layer handling:
 
 - **Email pipeline**: Prospect enrichment → SMTP verification → AI-drafted personalized outreach → HMAC approval gate → Gmail send → reply classification → auto-reply to interested leads
 - **Multi-source enrichment**: IPQS phone/email validation, CourtListener case scoring, OpenCorporates verification, Census market data
 - **Content engine**: Platform monitoring (Reddit, X) → AI remix → approval → scheduled publish
 - **LinkedIn pipeline**: Automated prospecting → morning digest → DM drafting → status tracking
-- **Creator affiliate discovery**: YouTube API → Firecrawl enrichment → Stripe integration → 8-language outreach
-- **System monitoring**: 30-minute health sweeps across all services with Slack alerts
+- **Creator affiliate discovery**: YouTube API → web enrichment → Stripe integration → multi-language outreach
+- **System monitoring**: Periodic health sweeps across all services with Slack alerts
 
-All orchestrated through crontab with ~20 active scheduled jobs.
+All orchestrated through crontab with scheduled jobs.
 
 ## Security Posture
 
-Security isn't an afterthought — it's been through **16 formal audit rounds** including a full 3-layer assessment (code scan + infrastructure red team + live perimeter testing):
+Security isn't an afterthought — it's been through **multiple formal audit rounds** including a full 3-layer assessment (code scan + infrastructure red team + live perimeter testing):
 
-- 47+ database tables with Row Level Security enforced
+- All database tables with Row Level Security enforced
 - Prompt injection defense across all agents scanning external content
 - HMAC-signed approval flows (no unsigned actions)
 - CRLF sanitization on all email fields

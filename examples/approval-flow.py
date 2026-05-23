@@ -123,8 +123,10 @@ This link expires in 24 hours. If no action is taken, the draft stays in pending
 
 
 if __name__ == "__main__":
-    # In production, this comes from env
-    HMAC_SECRET = os.environ.get("APPROVAL_HMAC_SECRET", "example-secret-change-me")
+    if "APPROVAL_HMAC_SECRET" not in os.environ:
+        print("ERROR: APPROVAL_HMAC_SECRET env var required. Exiting.")
+        sys.exit(1)
+    HMAC_SECRET = os.environ["APPROVAL_HMAC_SECRET"]
     ENDPOINT = "https://your-app.vercel.app/api/approve"
 
     # Generate approval URLs for a draft

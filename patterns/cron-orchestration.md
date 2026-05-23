@@ -97,6 +97,6 @@ When a pipeline is killed (e.g., cold outreach channel proved dead):
 | Layer | Monthly cost | Failure mode |
 |-------|-------------|--------------|
 | Local crontab | $0 | Machine sleep/reboot (expected, recoverable) |
-| LLM executor | ~$20/mo API | Rate limits, API outages (design for graceful degradation) |
+| LLM executor | Variable (budget-capped) | Rate limits, API outages (design for graceful degradation) |
 
 Keep LLM costs predictable by setting credit budgets per agent per run. If an agent is allocated 20 credits per run and runs 8x/month, the maximum monthly cost for that agent is 160 credits — known in advance.

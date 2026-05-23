@@ -14,22 +14,22 @@ Eight agents, each defined by a declarative skill specification. No shared state
 
 ### Agent Roster
 
-| Agent | Role | Schedule | LLM Required | Credit Budget |
-|-------|------|----------|-------------|---------------|
-| Oddjob | Multi-platform content scanner | 6x/day (every 4h) | Yes (content analysis) | 8 Firecrawl/run |
-| Dr. No | Infrastructure ops monitor | Daily 6am + on-demand | No (curl + ssh + psql) | $0 |
-| Elektra | Inbound signal detector | 3x/day | Yes (reply classification) | 5 Firecrawl/run |
-| Goldfinger | Prospect sourcer | 2x/week | Yes (qualification) | 20 Firecrawl/run |
-| Trevelyan | Security posture scanner | Weekly Sunday | No (Semgrep + npm audit) | $0 |
-| Janus | Market intelligence scout | Weekly Monday | Yes (analysis) | 10 Firecrawl/run |
-| Scaramanga | Content drafter | On-demand | Yes (voice matching) | $0 |
-| Moneypenny | Financial/thesis analyst | On-demand | Yes (analysis) | $0 |
+| Agent | Role | Schedule | LLM Required |
+|-------|------|----------|-------------|
+| Oddjob | Multi-platform content scanner | Configurable | Yes (content analysis) |
+| Dr. No | Infrastructure ops monitor | Configurable | No (curl + ssh + psql) |
+| Elektra | Inbound signal detector | Configurable | Yes (reply classification) |
+| Goldfinger | Prospect sourcer | Configurable | Yes (qualification) |
+| Trevelyan | Security posture scanner | Configurable | No (Semgrep + npm audit) |
+| Janus | Market intelligence scout | Configurable | Yes (analysis) |
+| Scaramanga | Content drafter | On-demand | Yes (voice matching) |
+| Moneypenny | Financial/thesis analyst | On-demand | Yes (analysis) |
 
 ### Key insight: Not every agent needs an LLM
 
 Dr. No and Trevelyan run entirely on `curl`, `ssh`, `psql`, `semgrep`, and `npm audit`. Zero API cost. Early versions routed everything through the LLM executor, which caused:
 - API rate limit cascading (one agent's burst starved others)
-- $20+/day in unnecessary API calls
+- Excessive unnecessary API calls
 - False reliability failures (LLM timeout ≠ system down)
 
 **Rule: If the task can be done with a bash script, it should be a bash script.**
@@ -50,7 +50,7 @@ This eliminates an entire class of bugs: agent A tells agent B to do something t
 
 ## Layer 2: Automation Layer (GTM Pipeline)
 
-60+ Python scripts handling deterministic business operations. These run on local crontab, not on the LLM executor.
+Python automation scripts handling deterministic business operations. These run on local crontab, not on the LLM executor.
 
 ### Email Pipeline Architecture
 
@@ -107,21 +107,17 @@ No email is ever auto-sent. The HMAC signature prevents link tampering. IP hash 
 ### Cron Orchestration
 
 ```
-6:30 AM  ─── LinkedIn prospecting
-6:45 AM  ─── Enrichment pipeline (20 prospects)
-7:00 AM  ─── SMTP email verification (200 emails)
-7:00 AM  ─── LinkedIn morning digest → operator
-7:30 AM  ─── Campaign drip enrollment
-7:35 AM  ─── Approval batch → operator email
-8:30 AM  ─── Send approved emails (max 5)
-9:00 AM  ─── Content calendar generation
-10:00 AM ─── Reply monitor + auto-reply
-10:30 AM ─── Cross-system lead sync
-11:00 AM ─── Booking nudge (48h follow-up)
-2:00 PM  ─── Reply monitor
-6:00 PM  ─── Reply monitor
-11:00 PM ─── Platform listener (Reddit + X)
-Sunday   ─── Log rotation
+T+0    ─── Prospecting
+T+15   ─── Enrichment pipeline
+T+30   ─── SMTP email verification
+T+30   ─── Morning digest → operator
+T+60   ─── Campaign drip enrollment
+T+65   ─── Approval batch → operator email
+T+120  ─── Send approved emails
+T+150  ─── Content calendar generation
+T+210  ─── Reply monitor + auto-reply
+...    ─── (periodic reply monitors throughout the day)
+Weekly ─── Log rotation
 ```
 
 **Design principle:** Jobs are ordered by dependency. Enrichment runs before verification. Verification runs before drafting. Drafting runs before approval. Approval runs before sending. Each job is idempotent — safe to re-run if a previous run failed.
@@ -130,20 +126,20 @@ Sunday   ─── Log rotation
 
 ### Compute
 
-| Resource | Purpose | Cost |
-|----------|---------|------|
-| Hetzner CX23 (Nuremberg) | LLM agent executor, Slack listener | ~$7/mo |
-| Local machine | Deterministic crons, dev environment, activity bridge | $0 (already owned) |
-| Vercel (free tier) | 5 web properties + serverless approval endpoints | $0 |
+| Resource | Purpose |
+|----------|---------|
+| VPS (any provider) | LLM agent executor, Slack listener |
+| Local machine | Deterministic crons, dev environment, activity bridge |
+| Serverless platform | Web properties + serverless approval endpoints |
 
 ### Data
 
-| Resource | Purpose | Tables | Cost |
-|----------|---------|--------|------|
-| Supabase Instance 1 | SaaS product (users, courses, exercises, gamification) | 25+ | Free tier |
-| Supabase Instance 2 | GTM operations (prospects, outreach, campaigns) | 22+ | Free tier |
+| Resource | Purpose |
+|----------|---------|
+| Database Instance | SaaS product (users, courses, exercises, gamification) |
+| Database Instance | GTM operations (prospects, outreach, campaigns) |
 
-Every table has Row Level Security enabled. All application access uses `service_role` key (server-side only). No client-side access to GTM data.
+Every table has Row Level Security enabled. All application access uses admin keys (server-side only). No client-side access to GTM data.
 
 ### Monitoring
 
@@ -219,7 +215,7 @@ Layer 4: Approval Gate (Last Resort)
 
 ### Database Security
 
-- **RLS everywhere**: 47+ tables across 2 instances, every one has Row Level Security
+- **RLS everywhere**: All tables across all instances have Row Level Security
 - **service_role only**: All programmatic access uses the admin key, server-side
 - **No client-side queries**: The GTM automation layer has zero browser-facing surface
 - **Explicit column lists**: `SELECT *` is banned — every query names its columns
